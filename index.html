@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+
+    <head>
+        <meta charset="utf-8">
+
+        <title>Meteor and Isomorphic Javascript</title>
+
+        <meta name="description" content="Meteor and Isomorphic Javascript">
+        <meta name="author" content="Peter Peerdeman">
+
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+        <link rel="stylesheet" href="css/reveal.min.css">
+        <link rel="stylesheet" href="css/theme/pp-reveal.css" id="theme">
+
+        <!-- For syntax highlighting -->
+        <!-- <link rel="stylesheet" href="lib/css/zenburn.css"> -->
+        <link rel="stylesheet" href="lib/css/googlecode.css">
+
+        <!-- If the query includes 'print-pdf', use the PDF print sheet -->
+        <script>
+            document.write( '<link rel="stylesheet" href="css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
+        </script>
+
+        <!--[if lt IE 9]>
+        <script src="lib/js/html5shiv.js"></script>
+        <![endif]-->
+    </head>
+
+    <body>
+
+        <div class="reveal">
+
+            <!-- Any section element inside of this container is displayed as a slide -->
+            <div class="slides">
+                <section class="pp-title">
+                    <h3>Meteor and Isomorphic Javascript</h3>
+                    <p>
+                        <img src="images/peter2.png" alt="">
+                    </p>
+                    <img src="images/logo-white.png"/>
+                    <p>
+                        <a href="http://twitter.com/peterpeerdeman">@peterpeerdeman</a>
+                    </p>
+                </section>
+                <section data-background="images/payoff-slide.png">
+                </section>
+                <section>
+                    <h3>iso·mor·phic</h3>
+                    <blockquote>"being of identical or similar form, shape, or structure"</blockquote>
+                </section>
+                <section>
+                    <h3>iso·mor·phic</h3>
+                    <blockquote>"(javascript) code that is used in both client and server application"</blockquote>
+                </section>
+                <section>
+                    <h2>Hello Single Page Apps</h2>
+                    <ul>
+                        <li>no pagerefresh after interaction</li>
+                        <li class="fragment">separation of concerns</li>
+                        <li class="fragment">excellent cause for a meetup ;)</li>
+                        <li class="fragment">different teams / languages</li>
+                        <li class="fragment">logic duplication</li>
+                    </ul>
+                </section>
+                <section>
+                    <h2>meanwhile at lifely...</h2>
+                    <h3>Angular + PHP -> Javascript</h3>
+                </section>
+                <section>
+                    <h2>Meteor</h2>
+                    <ul>
+                        <li class="fragment">Full stack Javascript app platform</li>
+                        <li class="fragment">"All inclusive" development environment</li>
+                        <li class="fragment">Reactive data model (ddp)</li>
+                        <li class="fragment">Quick kickstart web projects</li>
+                    </ul>
+                </section>
+                <section>
+                    <h2>quick "todos" demo</h2>
+                    <ul>
+                        <li>(single codebase)</li>
+                        <li>(data publication)</li>
+                        <li>(data subscription)</li>
+                        <li>(blaze / react rendering)</li>
+                    </ul>
+                </section>
+                <section>
+                    <h2>Isomorphic JS in Part-up</h2>
+                    <p>(one of our big production Meteor apps)</p>
+                </section>
+                <section>
+                    <img src="images/partup-featured.png" />
+                </section>
+                <section>
+                    <h3>Shared "lib" package</h3>
+                    <pre>
+                        <code>
+    ▾ partup:lib/
+      ▸ collections/
+      ▸ helpers/
+      ▸ private/
+      ▸ schemas/
+      ▸ services/
+      ▸ startup/
+      ▸ transformers/
+        error.js
+        globals.js
+        namespace.js
+        package.js
+        routes.js
+        version.js
+                        </code>
+                    </pre>
+                </section>
+                <section>
+                    <img src="images/partup-networks.png" />
+                </section>
+                <section>
+                    <h3>collections / model helpers</h3>
+                    <pre>
+                        <code class="javascript">
+/**
+ @namespace Networks
+ @name Networks
+ */
+Networks = new Mongo.Collection('networks', {
+    transform: function(document) {
+        return new Network(document);
+    }
+});
+
+/**
+ * Find featured networks
+ *
+ * @memberOf Networks
+ * @param {String} language
+ * @return {Mongo.Cursor}
+ */
+Networks.findFeatured = function(language) {
+    var selector = {'featured.active': true};
+    if (language) {
+        selector.language = language;
+    }
+    return Networks.find(selector);
+};
+                        </code>
+                    </pre>
+                </section>
+                <section>
+                    <img src="images/partup-invite.png" />
+                </section>
+                <section>
+                    <h3>schemas definition</h3>
+                    <pre>
+                        <code class="javascript">
+/**
+ * New message Form
+ * @name inviteUpper
+ * @memberof Partup.schemas.forms
+ */
+Partup.schemas.forms.inviteUpper = new SimpleSchema({
+    name: {
+        type: String
+    },
+    email: {
+        type: String,
+        max: 255,
+        regEx: Partup.services.validators.email
+    },
+    message: {
+        type: String,
+        max: 2500,
+        custom: function() {
+            if (!Partup.services.validators.containsNoHtml(this.value)) {
+                return 'shouldNotContainHtml';
+            }
+
+            if (!Partup.services.validators.containsRequiredTags(this.value, ['url', 'name'])) {
+                return 'missingRequiredTags';
+            }
+
+            if (!Partup.services.validators.containsNoUrls(this.value)) {
+                return 'shouldNotContainUrls';
+            }
+        }
+    }
+});
+                        </code>
+                    </pre>
+                </section>
+                <section>
+                    <h3>schema use (frontend)</h3>
+                    <pre>
+                        <code class="javascript">
+Template.InviteToActivity.helpers({
+    formSchema: Partup.schemas.forms.inviteUpper,
+    submitting: function() {
+        return Template.instance().submitting.get();
+    },
+
+    // snip
+});
+                        </code>
+                    </pre>
+                </section>
+                <section>
+                    <h3>schema use (backend)</h3>
+                    <pre>
+                        <code class="javascript">
+    /**
+     * Invite someone to an partup
+     *
+     * @param {string} partupId
+     * @param {string} email
+     * @param {string} name
+     */
+    'partups.invite_by_email': function(partupId, fields) {
+        check(fields, Partup.schemas.forms.inviteUpper);
+
+        var inviter = Meteor.user();
+
+        if (!inviter) {
+            throw new Meteor.Error(401, 'unauthorized');
+        }
+
+        var partup = Partups.findOneOrFail(partupId);
+
+        // snip
+    }
+                        </code>
+                    </pre>
+                </section>
+                <section>
+                    <img src="images/partup-mentions.png" />
+                </section>
+                <section>
+                    <h3>shared functions</h3>
+                    <pre>
+                        <code class="javascript">
+/**
+ * Extract mentions from a message
+ *
+ * e.g. "Hello [user:9ZxF5SHPjcAfbey4j|Jesse de Vries] &amp; [user:EpWPsBoBexD9QFSMR|Nick Koster]"
+ */
+Partup.helpers.mentions.extract = function(message) {
+    var mentions = [];
+    // extracts user (single) mentions
+    extractUsers(message).forEach(function(mention) {
+        var existingMention = lodash.find(mentions, {_id: mention._id});
+        if (!existingMention) mentions.push(mention);
+    });
+
+    // extracts partners (group) mention
+    extractPartners(message).forEach(function(mention) {
+        var existingMention = lodash.find(mentions, {name: 'Partners'});
+        if (!existingMention) mentions.push(mention);
+    });
+
+    // extracts supporters (group) mention
+    extractSupporters(message).forEach(function(mention) {
+        var existingMention = lodash.find(mentions, {name: 'Supporters'});
+        if (!existingMention) mentions.push(mention);
+    });
+    return mentions;
+};
+                        </code>
+                    </pre>
+                </section>
+                <section>
+                    <h2>Next steps</h2>
+                    <h3>(future of isomorphicness)</h3>
+                    <ul>
+                        <li class="fragment">holy grail: full isomorphic app</li>
+                        <li class="fragment">html + data rendering on backend</li>
+                        <li class="fragment">client side SPA interaction</li>
+                        <li class="fragment">meet: <a href="https://github.com/kriasoft/react-starter-kit/blob/master/docs/getting-started.md">react-starter-kit</a></li>
+                    </ul>
+                </section>
+                <section>
+
+                    <h2>react-starter-kit</h2>
+                    <h3>sneakpeak</h3>
+                    <ul>
+                        <li>react components</li>
+                        <li>react router</li>
+                        <li>graphql api</li>
+                        <li>serverside rendering (server.js:100)</li>
+                    </ul>
+                </section>
+                <section class="pp-title">
+                    <h3>Thank you for your attention</h3>
+                </section>
+                <section class="pp-title">
+                    <h3>Meteor and Isomorphic Javascript</h3>
+                    <p>
+                        <img src="images/peter2.png" alt="">
+                    </p>
+                    <img src="images/logo-white.png"/>
+                    <p>
+                        <a href="http://twitter.com/peterpeerdeman">@peterpeerdeman</a>
+                    </p>
+                </section>
+            </div>
+
+        </div>
+
+        <script src="lib/js/head.min.js"></script>
+        <script src="js/reveal.min.js"></script>
+
+        <script>
+
+            // Full list of configuration options available here:
+            // https://github.com/hakimel/reveal.js#configuration
+            Reveal.initialize({
+                controls: true,
+                progress: true,
+                history: true,
+                center: true,
+                theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+                transition: Reveal.getQueryHash().transition || 'linear', // default/cube/page/concave/zoom/linear/fade/none
+
+                // Optional libraries used to extend on reveal.js
+                dependencies: [
+                    { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+                    { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+                    { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+                    { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+                    { src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+                    { src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+                ]
+            });
+
+        </script>
+
+    </body>
+</html>
